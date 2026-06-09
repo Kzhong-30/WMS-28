@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  username  String     @unique
+  email     String     @unique
+  password  String
+  avatar    String?
+  bio       String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  snippets  Snippet[]
+  comments  Comment[]
+  likes     Like[]
+  favorites Favorite[]
+}
+
+model Snippet {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  code        String
+  language    String
+  isPublic    Boolean    @default(true)
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tags        SnippetTag[]
+  comments    Comment[]
+  likes       Like[]
+  favorites   Favorite[]
+
+  @@index([language])
+  @@index([createdAt])
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @unique
+  snippets SnippetTag[]
+}
+
+model SnippetTag {
+  snippetId String
+  tagId     String
+  snippet   Snippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([snippetId, tagId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  snippetId String
+  authorId  String
+  snippet   Snippet  @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([snippetId])
+}
+
+model Like {
+  userId    String
+  snippetId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snippet   Snippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+
+  @@id([userId, snippetId])
+}
+
+model Favorite {
+  userId    String
+  snippetId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snippet   Snippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, snippetId])
+}
