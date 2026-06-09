@@ -120,12 +120,6 @@ export default function NewSnippetPage() {
       .finally(() => setCheckingAuth(false))
   }, [router])
 
-  useEffect(() => {
-    if (defaultCode[language]) {
-      setCode(defaultCode[language])
-    }
-  }, [language])
-
   const addTag = () => {
     const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9_\-]/g, '')
     if (!t) return
@@ -282,7 +276,24 @@ export default function NewSnippetPage() {
               </label>
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value
+                  if (next === language) return
+                  const currentDefault = defaultCode[language] || ''
+                  const userEdited = code.trim().length > 0 && code !== currentDefault
+                  if (userEdited) {
+                    const ok = window.confirm(
+                      `切换到 ${SUPPORTED_LANGUAGES.find(l=>l.value===next)?.label||next} 语言？\n\n选择“确定”将使用新语言的模板覆盖当前代码，选择“取消”将保留当前代码不变。`
+                    )
+                    if (ok) {
+                      setLanguage(next)
+                      setCode(defaultCode[next] || '')
+                    }
+                  } else {
+                    setLanguage(next)
+                    if (defaultCode[next]) setCode(defaultCode[next])
+                  }
+                }}
                 className="w-full px-4 py-3 bg-dark-900 border border-dark-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition appearance-none cursor-pointer"
               >
                 {SUPPORTED_LANGUAGES.map((lang) => (
