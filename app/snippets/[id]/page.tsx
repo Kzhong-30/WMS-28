@@ -22,7 +22,7 @@ async function fetchSnippet(id: string, currentUserId?: string) {
           author: { select: { id: true, username: true, avatar: true } },
         },
       },
-      _count: { select: { likes: true, favorites: true } },
+      _count: { select: { likes: true, favorites: true, comments: true } },
     },
   })
 

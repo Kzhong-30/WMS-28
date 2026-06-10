@@ -16,6 +16,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { SUPPORTED_LANGUAGES } from '@/lib/languages'
+import ConfirmModal from '@/components/ConfirmModal'
 
 const languageMonacoMap: Record<string, string> = {
   javascript: 'javascript',
@@ -101,6 +102,8 @@ export default function NewSnippetPage() {
   const [isPublic, setIsPublic] = useState(true)
   const [tagInput, setTagInput] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [langModalOpen, setLangModalOpen] = useState(false)
+  const [pendingLanguage, setPendingLanguage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -282,13 +285,8 @@ export default function NewSnippetPage() {
                   const currentDefault = defaultCode[language] || ''
                   const userEdited = code.trim().length > 0 && code !== currentDefault
                   if (userEdited) {
-                    const ok = window.confirm(
-                      `切换到 ${SUPPORTED_LANGUAGES.find(l=>l.value===next)?.label||next} 语言？\n\n选择“确定”将使用新语言的模板覆盖当前代码，选择“取消”将保留当前代码不变。`
-                    )
-                    if (ok) {
-                      setLanguage(next)
-                      setCode(defaultCode[next] || '')
-                    }
+                    setPendingLanguage(next)
+                    setLangModalOpen(true)
                   } else {
                     setLanguage(next)
                     if (defaultCode[next]) setCode(defaultCode[next])
@@ -456,6 +454,26 @@ export default function NewSnippetPage() {
           </div>
         </div>
       </form>
+
+      <ConfirmModal
+        isOpen={langModalOpen}
+        title="切换编程语言"
+        message={`切换到 ${SUPPORTED_LANGUAGES.find((l) => l.value === pendingLanguage)?.label || pendingLanguage} 语言？\n\n选择"确定"将使用新语言的模板覆盖当前代码，选择"取消"将保留当前代码不变。`}
+        confirmText="确定切换"
+        cancelText="取消"
+        onConfirm={() => {
+          if (pendingLanguage) {
+            setLanguage(pendingLanguage)
+            setCode(defaultCode[pendingLanguage] || '')
+          }
+          setLangModalOpen(false)
+          setPendingLanguage(null)
+        }}
+        onCancel={() => {
+          setLangModalOpen(false)
+          setPendingLanguage(null)
+        }}
+      />
     </div>
   )
 }

@@ -97,40 +97,61 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '缺少必填字段' }, { status: 400 })
     }
 
-    const tagsData = tagNames && tagNames.length > 0
-      ? {
-          create: tagNames.map((name: string) => ({
-            tag: {
-              connectOrCreate: {
-                where: { name },
-                create: { name },
+    const snippet = await prisma.$transaction(async (tx) => {
+      const tagList = Array.isArray(tagNames) ? tagNames : []
+
+      const snippetRecord = await tx.snippet.create({
+        data: {
+          title,
+          description,
+          code,
+          language,
+          isPublic: isPublic !== false,
+          authorId: user.id,
+        },
+      })
+
+      if (tagList.length > 0) {
+        for (const name of tagList) {
+          const trimmed = String(name).trim().toLowerCase()
+          if (!trimmed) continue
+          const tagRecord = await tx.tag.upsert({
+            where: { name: trimmed },
+            create: { name: trimmed },
+            update: {},
+          })
+          await tx.snippetTag.upsert({
+            where: {
+              snippetId_tagId: {
+                snippetId: snippetRecord.id,
+                tagId: tagRecord.id,
               },
             },
-          })),
+            create: {
+              snippetId: snippetRecord.id,
+              tagId: tagRecord.id,
+            },
+            update: {},
+          })
         }
-      : {}
+      }
 
-    const snippet = await prisma.snippet.create({
-      data: {
-        title,
-        description,
-        code,
-        language,
-        isPublic: isPublic !== false,
-        authorId: user.id,
-        tags: tagsData,
-      },
-      include: {
-        author: {
-          select: { id: true, username: true, avatar: true },
+      return tx.snippet.findUnique({
+        where: { id: snippetRecord.id },
+        include: {
+          author: { select: { id: true, username: true, avatar: true } },
+          tags: { include: { tag: true } },
         },
-        tags: { include: { tag: true } },
-      },
+      })
     })
+
+    if (!snippet) {
+      return NextResponse.json({ error: '创建失败' }, { status: 500 })
+    }
 
     return NextResponse.json({
       ...snippet,
-      tags: snippet.tags.map((st) => st.tag),
+      tags: snippet.tags.map((st: any) => st.tag),
       likes: 0,
       comments: 0,
     }, { status: 201 })

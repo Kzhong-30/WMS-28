@@ -32,7 +32,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
           orderBy: { createdAt: 'desc' },
         },
         _count: {
-          select: { likes: true, favorites: true },
+          select: { likes: true, favorites: true, comments: true },
         },
       },
     })
@@ -62,6 +62,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       tags: snippet.tags.map((st) => st.tag),
       likes: snippet._count.likes,
       favorites: snippet._count.favorites,
+      comments: snippet._count.comments,
       isLiked: !!isLiked,
       isFavorited: !!isFavorited,
     })
